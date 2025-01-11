@@ -4,10 +4,6 @@
 
 **Coomer Downloader App** is a desktop application developed in Python that allows users to easily download images and videos from URLs. The application provides an intuitive graphical user interface (GUI) to simplify the process.
 
-# Support my work!
-
-If you like my project and want to support it, you can make a donation through PayPal, thank you for your support!
-
 ## Features
 
 ### Downloading Images and Videos
@@ -33,6 +29,7 @@ The app supports various file extensions for different types of media:
 [![bunkr-albums.io](https://img.shields.io/badge/Website-bunkr.albums.io-blue)](https://bunkr-albums.io/) 
 [![simpcity.su](https://img.shields.io/badge/Website-simpcity.su-lightgrey)](https://simpcity.su/)
 [![jpg5.su](https://img.shields.io/badge/Website-jpg5.su-orange)](https://jpg5.su/)
+[![jpg5.su](https://www.phica.eu//forums/styles/default/xenforo/xenforo-logo.phica3.png)](https://www.phica.eu/forums/) 
 
 
 ## Language Support

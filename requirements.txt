@@ -6,3 +6,10 @@ pillow
 psutil
 markdown2
 tkinterweb
+patool
+cloudscraper
+selenium
+pathvalidate
+tqdm
+playwright
+browser_cookie3

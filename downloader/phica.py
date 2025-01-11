@@ -8,6 +8,12 @@ from urllib.parse import urljoin, urlparse
 import requests
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import cloudscraper
+import time
 
 # Import the BunkrDownloader class from bunkr.py
 from .bunkr import BunkrDownloader
@@ -18,22 +24,33 @@ class Phica:
     def __init__(self, download_folder, max_workers=5, log_callback=None, enable_widgets_callback=None, update_progress_callback=None, update_global_progress_callback=None, tr=None):
         self.download_folder = download_folder
         self.max_workers = max_workers
-        self.descargadas = set()  # Set to track downloaded files
+        self.descargadas = set()
         self.log_callback = log_callback
         self.enable_widgets_callback = enable_widgets_callback
         self.update_progress_callback = update_progress_callback
         self.update_global_progress_callback = update_global_progress_callback
-        self.cancel_requested = False  # Flag for cancel functionality
+        self.cancel_requested = False
         self.total_files = 0
         self.completed_files = 0
         self.download_queue = queue.Queue()
         self.tr = tr
-        self.external_links = []  # List to store external links
-        self.translations = {}  # Initialize translations as an empty dictionary
+        self.external_links = []
+        self.translations = {}
+
+        # Initialize cloudscraper
+        self.scraper = cloudscraper.create_scraper()
 
         # Load cookies and handlers
         self.cookies = self.load_cookies("cookies_phica.json")
         self.handlers = self.load_handlers("handlers.json")
+
+        # Check if cookies are missing or invalid
+        if not self.cookies or not self.are_cookies_valid("https://www.phica.eu/forums/watched/threads"):  # Replace with a protected URL
+            self.log(self.tr("Cookies are missing or invalid. Starting login process..."))
+            self.login_and_store_cookies(login_url="https://www.phica.eu/forums/login")  # Replace with the login URL
+            self.cookies = self.load_cookies("cookies_phica.json")  # Reload cookies after login
+
+        # Load legacy and new Bunkr domains
         self.legacy_bunkr_domains = [
             "bunkr.ax", "bunkr.cat", "bunkr.ru", "bunkrr.ru", "bunkr.su", "bunkrr.su",
             "bunkr.la", "bunkr.is", "bunkr.to"
@@ -65,20 +82,110 @@ class Phica:
         if self.log_callback:
             self.log_callback(message)
 
-    def load_cookies(self, file_path):
-        if os.path.exists(file_path):
-            with open(file_path, 'r') as file:
+    def load_cookies(self, file_name):
+        """
+        Load cookies from the specified file in the resources/config folder.
+        """
+        # Construct the full path to the cookies file
+        config_folder = os.path.join("resources", "config")
+        full_path = os.path.join(config_folder, file_name)
+        
+        # Check if the file exists and load it
+        if os.path.exists(full_path):
+            with open(full_path, 'r') as file:
                 cookies_list = json.load(file)
                 # Convert list of cookies to a dictionary
                 cookies_dict = {cookie['name']: cookie['value'] for cookie in cookies_list}
                 return cookies_dict
         return {}
+        
+    def are_cookies_valid(self, test_url):
+        """
+        Check if the stored cookies are valid by making a request to a protected endpoint.
+        
+        Args:
+            test_url (str): A URL that requires authentication (e.g., user profile page).
+        
+        Returns:
+            bool: True if cookies are valid, False otherwise.
+        """
+        try:
+            response = self.scraper.get(test_url, cookies=self.cookies)
+            # If the response status code is 200 and the page contains user-specific content,
+            # the cookies are valid.
+            if response.status_code == 200:
+                # Add additional checks here if needed (e.g., look for a specific string in the response)
+                return True
+        except Exception as e:
+            self.log(self.tr(f"Error checking cookie validity: {e}"))
+        return False
 
-    def load_handlers(self, file_path):
-        if os.path.exists(file_path):
-            with open(file_path, 'r') as file:
+    def login_and_store_cookies(self, login_url, cookie_file="cookies_phica.json"):
+        """
+        Automates the login process and stores cookies after the user logs in.
+        
+        Args:
+            login_url (str): The URL of the login page.
+            cookie_file (str): The file to store the cookies in.
+        """
+        # Initialize the Selenium WebDriver (e.g., Chrome)
+        options = webdriver.ChromeOptions()
+        # Remove the --headless argument to show the browser window
+        # options.add_argument("--headless")  # Comment this line out
+        driver = webdriver.Chrome(options=options)
+
+        try:
+            # Open the login page
+            driver.get(login_url)
+            self.log(self.tr("Please log in manually in the browser window..."))
+
+            # Wait for the user to log in (you can adjust the timeout as needed)
+            WebDriverWait(driver, 300).until(
+                EC.url_changes(login_url)  # Wait until the URL changes after login
+            )
+
+            # Extract cookies using Selenium's get_cookies() method
+            cookies = driver.get_cookies()
+            self.log(self.tr("Cookies extracted successfully."))
+
+            # Print the extracted cookies for debugging
+            print("Extracted Cookies:")
+            for cookie in cookies:
+                print(f"Name: {cookie['name']}, Value: {cookie['value']}, Domain: {cookie['domain']}")
+
+            # Save cookies to a file
+            config_folder = os.path.join("resources", "config")
+            os.makedirs(config_folder, exist_ok=True)
+            cookie_file_path = os.path.join(config_folder, cookie_file)
+            with open(cookie_file_path, "w") as f:
+                json.dump(cookies, f)
+            self.log(self.tr(f"Cookies saved to {cookie_file_path}"))
+
+        except Exception as e:
+            self.log(self.tr(f"Error during login: {e}"))
+        finally:
+            # Keep the browser open for 10 seconds after login for debugging
+            time.sleep(10)
+            driver.quit()
+
+    def load_handlers(self, file_name):
+        """
+        Load handlers from the specified file in the resources/config folder.
+        """
+        # Construct the full path to the handlers file
+        config_folder = os.path.join("resources", "config")
+        full_path = os.path.join(config_folder, file_name)
+        
+        # Debugging: Print the full path being used
+        print(f"Loading handlers from: {full_path}")
+        
+        # Check if the file exists and load it
+        if os.path.exists(full_path):
+            with open(full_path, 'r') as file:
                 return json.load(file)
-        return {}
+        else:
+            print(f"Handlers file not found: {full_path}")  # Debugging
+            return {}
 
     def sanitize_folder_name(self, name):
         return re.sub(r'[<>:"/\\|?*]', '_', name)

@@ -1,0 +1,5 @@
+{
+    "thread_title": "h1[class*=p-title-value]",
+    "message_content": "div[class*=message-content]",
+    "next_page": "a[class*=pageNav-jump--next]"
+}

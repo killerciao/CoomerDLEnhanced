@@ -29,7 +29,7 @@ The app supports various file extensions for different types of media:
 [![bunkr-albums.io](https://img.shields.io/badge/Website-bunkr.albums.io-blue)](https://bunkr-albums.io/) 
 [![simpcity.su](https://img.shields.io/badge/Website-simpcity.su-lightgrey)](https://simpcity.su/)
 [![jpg5.su](https://img.shields.io/badge/Website-jpg5.su-orange)](https://jpg5.su/)
-[![jpg5.su](https://www.phica.eu//forums/styles/default/xenforo/xenforo-logo.phica3.png)](https://www.phica.eu/forums/) 
+[![jpg5.su](https://img.shields.io/badge/website-Phica.eu-blue)](https://www.phica.eu/forums/) 
 
 
 ## Language Support
